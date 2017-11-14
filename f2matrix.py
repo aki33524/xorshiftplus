@@ -35,16 +35,56 @@ def gaussian_elimination(_A):
 				continue
 			A[j] = (A[j] - A[i]) % 2
 
+	print_matrix(A)
 	# lower triangle
-	for i in range(128):
-		assert A[128-i-1, 128-i-1] == 1
+	for i in range(H):
+		print i
+		assert A[H-i-1, H-i-1] == 1
 
-		for j in range(128-i-1-1, -1, -1):
-			if A[j, 128-i-1] == 0:
+		for j in range(H-i-1-1, -1, -1):
+			if A[j, H-i-1] == 0:
 				continue
-			A[j] = (A[j] + A[128-i-1]) % 2
+			A[j] = (A[j] + A[H-i-1]) % 2
 
 	return A
+
+def gaussian_elimination2(_A, V):
+	V = np.matrix(V, dtype="int64").T
+
+	H, W = _A.shape
+	
+	# A = deepcopy(_A)
+	A = np.block([
+			[_A, V]
+		])
+
+	# upper triangle
+	for i in range(H):
+		for j in range(i, H):
+			if A[j, i] == 1:
+				x = deepcopy(A[i])
+				y = deepcopy(A[j])
+				A[i] = y
+				A[j] = x
+				# A[i], A[j] = A[j], A[i]
+				break
+
+		for j in range(i+1, H):
+			if A[j, i] == 0:
+				continue
+			A[j] = (A[j] - A[i]) % 2
+
+	# lower triangle
+	for i in range(64):
+		assert A[64-i-1, 64-i-1] == 1
+
+		for j in range(64-i-1-1, -1, -1):
+			if A[j, 64-i-1] == 0:
+				continue
+			A[j] = (A[j] + A[64-i-1]) % 2
+
+	return A
+
 
 def is_indepent(M, _l):
 	# M is upper triangle!
