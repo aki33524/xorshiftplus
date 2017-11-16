@@ -27,7 +27,7 @@ def gaussian_elimination(_A):
 				y = deepcopy(A[j])
 				A[i] = y
 				A[j] = x
-				# A[i], A[j] = A[j], A[i]
+				# A[i], A[j] = A[j], A[i] bug!
 				break
 
 		for j in range(i+1, H):
@@ -35,10 +35,8 @@ def gaussian_elimination(_A):
 				continue
 			A[j] = (A[j] - A[i]) % 2
 
-	print_matrix(A)
 	# lower triangle
 	for i in range(H):
-		print i
 		assert A[H-i-1, H-i-1] == 1
 
 		for j in range(H-i-1-1, -1, -1):
@@ -46,7 +44,7 @@ def gaussian_elimination(_A):
 				continue
 			A[j] = (A[j] + A[H-i-1]) % 2
 
-	return A
+	return np.hsplit(A, 2)[1]
 
 def gaussian_elimination2(_A, V):
 	V = np.matrix(V, dtype="int64").T
