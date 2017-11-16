@@ -19,8 +19,8 @@ Int xmask = 0;
 map<int, int> masktoi;
 vector<Int> xcheckers(N), ms1, ms2;
 vector<vector<Int>> bits(N);
-vector<pair<Int, Int>> miv;
-vector<vector<pair<Int, Int>>> mivs(C);
+vector<pair<Int, Int>> miv1, miv2;
+vector<vector<pair<Int, Int>>> mivs1(C), mivs2(C);
 set<Int> mits;
 
 void input(){
@@ -66,15 +66,12 @@ void process_y2(Int lb, Int ub, int ti){
 			mv += ((bits[p][i] + __builtin_popcount(y2 & ms2[i]))%2) * (1LL<<(63-i));
 		mv ^= x2;
 
-		// if(mv == 9321916706471420112LL)
-		// 	cout << x2 << " " << y2 << endl;
-
-		mivs[ti].emplace_back(mv, y2);
+		mivs1[ti].emplace_back(mv, y2);
 	}
-	sort(mivs[ti].begin(), mivs[ti].end());	
+	sort(mivs1[ti].begin(), mivs1[ti].end());	
 }
 
-void process_y1(Int lb, Int ub){
+void process_y1(Int lb, Int ub, int ti){
 	for(Int y1=lb; y1<ub; y1++){
 		for(Int carry=0; carry<=1; carry++){
 			// Int c1 = O1>>32;
@@ -91,53 +88,41 @@ void process_y1(Int lb, Int ub){
 				mv += (__builtin_popcount(y1 & ms1[i])%2) * (1LL<<(63-i));
 			mv ^= (x1<<32);
 
-			if(mv == 9321916706471420112LL)
-				cout << x1 << " " << y1 << endl;
-
-			Int lb = 0;
-			Int ub = miv.size();
-			while(ub > lb + 1){
-				Int mid = (lb + ub)/2;
-				if(miv[mid].first <= mv)
-					lb = mid;
-				else
-					ub = mid;
-			}
-			if(miv[lb].first == mv){
-				Int y2 = miv[lb].second;
-
-				Int c2 = 2332385222LL;
-				Int x2;
-				Int _carry;
-				if(y2 < c2){
-					x2 = (c2 - y2);
-					_carry = 0;
-				}else{
-					x2 = (c2 + (1LL<<32) - y2);
-					_carry = 1;
-				}
-				// if(_carry == carry)
-				// 	continue;
-
-				Int x = (x1<<32) + x2;
-				Int y = (y1<<32) + y2;
-				
-				cout << (_carry == carry) << endl;
-				cout << "x: " << x << endl;
-				cout << "y: " << y << endl;
-			}
+			mivs2[ti].emplace_back(mv, y1);
 		}
 	}
+	sort(mivs2[ti].begin(), mivs2[ti].end());
 }
 
 int main(){
 	input();
 
 	vector<thread> threads;
-
-	cout << "Checking All y2" << endl;
-	int ti = 0;
 	int X = 32;
+	int ti;
+	
+	cout << "enumulating all y1" << endl;
+	ti = 0;
+	threads.clear();
+	for(Int y1=0; y1<(1LL<<X); y1+=(1LL<<(X-T))){
+		thread th(process_y1, y1, y1+(1LL<<(X-T)), ti);
+		threads.push_back(move(th));
+		ti++;
+	}
+	for(auto& t: threads)
+		t.join();
+
+	cout << "merging vectors" << endl;
+	miv1.reserve(1LL<<32);
+	for(int ti=0; ti<C; ti++){
+		for(auto v: mivs1[ti])
+			miv1.push_back(v);
+	}
+	sort(miv1.begin(), miv1.end());
+	
+	cout << "enumulating all y2" << endl;
+	ti = 0;
+	threads.clear();
 	for(Int y2=0; y2<(1LL<<X); y2+=(1LL<<(X-T))){
 		thread th(process_y2, y2, y2+(1LL<<(X-T)), ti);
 		threads.push_back(move(th));
@@ -145,40 +130,26 @@ int main(){
 	}
 	for(auto& t: threads)
 		t.join();
-	
-	cout << "Concatinating mivs" << endl;
-	miv.reserve(1LL<<32);
+
+	cout << "merging vectors" << endl;
+	miv2.reserve(1LL<<32);
 	for(int ti=0; ti<C; ti++){
-		for(auto v: mivs[ti])
-			miv.push_back(v);
+		for(auto v: mivs2[ti])
+			miv2.push_back(v);
 	}
-	sort(miv.begin(), miv.end());
+	sort(miv2.begin(), miv2.end());
 
-	Int lb = 0;
-	Int ub = miv.size();
-	while(ub > lb + 1LL){
-		Int mid = (lb + ub)/2;
-		cout << lb << " " << ub << endl;
-		cout << mid << " " << miv[mid].first << endl;
-
-		if(miv[mid].first <= 9321916706471420112LL)
-			lb = mid;
-		else
-			ub = mid;
+	Int p1 = 0;
+	Int p2 = 0;
+	while(p1 < miv1.size() || p2 < miv2.size()){
+		if(miv1[p1].first == miv2[p2].first){
+			cout << miv1[p1].second << " " << miv2[p2].second << endl; 
+		}else if(p1 < miv1.size() && miv1[p1].first < miv2[p2].first){
+			p1++;
+		}else if(p2 < miv2.size() && miv1[p1].first > miv2[p2].first){
+			p2++;
+		}
 	}
-	cout << lb << endl;
-	cout << miv[lb].second << endl;
-
-	cout << "miv size: " << miv.size() << endl;
-
-	cout << "Checking All y1" << endl;
-	threads.clear();
-	for(Int y1=0; y1<(1LL<<X); y1+=(1LL<<(X-T))){
-		thread th(process_y1, y1, y1+(1LL<<(X-T)));
-		threads.push_back(move(th));
-	}
-	for(auto& t: threads)
-		t.join();
 
 	return 0;
 }
