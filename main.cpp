@@ -5,6 +5,7 @@
 #include <thread>
 #include <set>
 #include <cassert>
+#include <queue>
 using namespace std;
 
 typedef unsigned long long Int;
@@ -46,6 +47,30 @@ void input(){
 	}	
 }
 
+void process_y1(Int lb, Int ub, int ti){
+	for(Int y1=lb; y1<ub; y1++){
+		for(Int carry=0; carry<=1; carry++){
+			// Int c1 = O1>>32;
+			Int c1 = 4182162304LL;
+			c1  -= carry;
+			Int x1;
+			if(y1 < c1)
+				x1 = (c1 - y1);
+			else
+				x1 = (c1 + (1LL<<32) - y1);
+
+			Int mv = 0;
+			for(int i=0; i<64; i++)
+				mv += (__builtin_popcount(y1 & ms1[i])%2) * (1LL<<(63-i));
+			mv ^= (x1<<32);
+
+			mivs1[ti].emplace_back(mv, y1);
+		}
+	}
+	sort(mivs1[ti].begin(), mivs1[ti].end());
+}
+
+
 void process_y2(Int lb, Int ub, int ti){
 	for(Int y2=lb; y2<ub; y2++){
 		// Int c2 = O1 % (1LL<<32);
@@ -66,32 +91,35 @@ void process_y2(Int lb, Int ub, int ti){
 			mv += ((bits[p][i] + __builtin_popcount(y2 & ms2[i]))%2) * (1LL<<(63-i));
 		mv ^= x2;
 
-		mivs1[ti].emplace_back(mv, y2);
+		mivs2[ti].emplace_back(mv, y2);
 	}
-	sort(mivs1[ti].begin(), mivs1[ti].end());	
+	sort(mivs2[ti].begin(), mivs2[ti].end());	
 }
 
-void process_y1(Int lb, Int ub, int ti){
-	for(Int y1=lb; y1<ub; y1++){
-		for(Int carry=0; carry<=1; carry++){
-			// Int c1 = O1>>32;
-			Int c1 = 4182162304LL;
-			c1  -= carry;
-			Int x1;
-			if(y1 < c1)
-				x1 = (c1 - y1);
-			else
-				x1 = (c1 + (1LL<<32) - y1);
+void merge(vector<pair<Int, Int>> &miv, vector<vector<pair<Int, Int>>> &mivs){
+	Int s = 0;
+	for(auto &v: mivs)
+		s += v.size();
 
-			Int mv = 0;
-			for(int i=0; i<64; i++)
-				mv += (__builtin_popcount(y1 & ms1[i])%2) * (1LL<<(63-i));
-			mv ^= (x1<<32);
+	miv.reserve(s);
 
-			mivs2[ti].emplace_back(mv, y1);
+	vector<int> ptrs(C);
+	priority_queue<pair<pair<Int, Int>, int>, vector<pair<pair<Int, Int>, int>>, greater<pair<pair<Int, Int>, int>>> que;
+	for(int i=0; i<C; i++){
+		que.push({mivs[i][0], i});
+	}
+	while(!que.empty()){
+		auto p = que.top(); que.pop();
+		auto v = p.first;
+		auto ti = p.second;
+		miv.push_back(v);
+
+		ptrs[ti]++;
+		if(ptrs[ti] < mivs[ti].size()){
+			que.push({mivs[ti][ptrs[ti]], ti});
 		}
 	}
-	sort(mivs2[ti].begin(), mivs2[ti].end());
+	mivs.clear();
 }
 
 int main(){
@@ -113,12 +141,8 @@ int main(){
 		t.join();
 
 	cout << "merging vectors" << endl;
-	miv1.reserve(1LL<<32);
-	for(int ti=0; ti<C; ti++){
-		for(auto v: mivs1[ti])
-			miv1.push_back(v);
-	}
-	sort(miv1.begin(), miv1.end());
+	merge(miv1, mivs1);
+	cout << "miv1: " << miv1.size() << endl;
 	
 	cout << "enumulating all y2" << endl;
 	ti = 0;
@@ -132,18 +156,18 @@ int main(){
 		t.join();
 
 	cout << "merging vectors" << endl;
-	miv2.reserve(1LL<<32);
-	for(int ti=0; ti<C; ti++){
-		for(auto v: mivs2[ti])
-			miv2.push_back(v);
-	}
-	sort(miv2.begin(), miv2.end());
-
+	merge(miv2, mivs2);
+	cout << "miv2: " << miv2.size() << endl;
+	
+	cout << "serching" << endl;
 	Int p1 = 0;
 	Int p2 = 0;
-	while(p1 < miv1.size() || p2 < miv2.size()){
+	while(p1 < miv1.size() && p2 < miv2.size()){
+
 		if(miv1[p1].first == miv2[p2].first){
-			cout << miv1[p1].second << " " << miv2[p2].second << endl; 
+			cout << miv1[p1].second << " " << miv2[p2].second << endl;
+			p1++;
+			p2++;
 		}else if(p1 < miv1.size() && miv1[p1].first < miv2[p2].first){
 			p1++;
 		}else if(p2 < miv2.size() && miv1[p1].first > miv2[p2].first){
