@@ -9,7 +9,7 @@ using namespace std;
 
 typedef unsigned long long Int;
 
-const int T = 5;
+const int T = 6;
 const int C = 1<<T;
 int N = 16;
 
@@ -19,6 +19,7 @@ Int xmask = 0;
 map<int, int> masktoi;
 vector<Int> xcheckers(N), ms1, ms2;
 vector<vector<Int>> bits(N);
+vector<pair<Int, Int>> miv;
 vector<vector<pair<Int, Int>>> mivs(C);
 set<Int> mits;
 
@@ -50,13 +51,13 @@ void process_y2(Int lb, Int ub, int ti){
 		// Int c2 = O1 % (1LL<<32);
 		Int c2 = 2332385222LL;
 		Int x2;
-		bool carry;
+		Int carry;
 		if(y2 < c2){
 			x2 = (c2 - y2);
-			carry = false;
+			carry = 0;
 		}else{
 			x2 = (c2 + (1LL<<32) - y2);
-			carry = true;
+			carry = 1;
 		}
 		int p = masktoi[x2&xmask];
 
@@ -65,6 +66,9 @@ void process_y2(Int lb, Int ub, int ti){
 			mv += ((bits[p][i] + __builtin_popcount(y2 & ms2[i]))%2) * (1LL<<(63-i));
 		mv ^= x2;
 
+		// if(mv == 9321916706471420112LL)
+		// 	cout << x2 << " " << y2 << endl;
+
 		mivs[ti].emplace_back(mv, y2);
 	}
 	sort(mivs[ti].begin(), mivs[ti].end());	
@@ -72,7 +76,6 @@ void process_y2(Int lb, Int ub, int ti){
 
 void process_y1(Int lb, Int ub){
 	for(Int y1=lb; y1<ub; y1++){
-		// TODO: 繰り上がりで場合分け
 		for(Int carry=0; carry<=1; carry++){
 			// Int c1 = O1>>32;
 			Int c1 = 4182162304LL;
@@ -88,19 +91,40 @@ void process_y1(Int lb, Int ub){
 				mv += (__builtin_popcount(y1 & ms1[i])%2) * (1LL<<(63-i));
 			mv ^= (x1<<32);
 
-			for(int ti=0; ti<C; ti++){
-				Int lb = 0;
-				Int ub = mivs[ti].size();
-				while(ub > lb + 1){
-					Int mid = (lb + ub)/2;
-					if(mivs[ti][mid].first <= mv)
-						lb = mid;
-					else
-						ub = mid;
+			if(mv == 9321916706471420112LL)
+				cout << x1 << " " << y1 << endl;
+
+			Int lb = 0;
+			Int ub = miv.size();
+			while(ub > lb + 1){
+				Int mid = (lb + ub)/2;
+				if(miv[mid].first <= mv)
+					lb = mid;
+				else
+					ub = mid;
+			}
+			if(miv[lb].first == mv){
+				Int y2 = miv[lb].second;
+
+				Int c2 = 2332385222LL;
+				Int x2;
+				Int _carry;
+				if(y2 < c2){
+					x2 = (c2 - y2);
+					_carry = 0;
+				}else{
+					x2 = (c2 + (1LL<<32) - y2);
+					_carry = 1;
 				}
-				if(mivs[ti][lb].first == mv){
-					cout << y1 << " " <<  mivs[ti][lb].second << " " << mv << endl;
-				}
+				// if(_carry == carry)
+				// 	continue;
+
+				Int x = (x1<<32) + x2;
+				Int y = (y1<<32) + y2;
+				
+				cout << (_carry == carry) << endl;
+				cout << "x: " << x << endl;
+				cout << "y: " << y << endl;
 			}
 		}
 	}
@@ -122,6 +146,31 @@ int main(){
 	for(auto& t: threads)
 		t.join();
 	
+	cout << "Concatinating mivs" << endl;
+	miv.reserve(1LL<<32);
+	for(int ti=0; ti<C; ti++){
+		for(auto v: mivs[ti])
+			miv.push_back(v);
+	}
+	sort(miv.begin(), miv.end());
+
+	Int lb = 0;
+	Int ub = miv.size();
+	while(ub > lb + 1LL){
+		Int mid = (lb + ub)/2;
+		cout << lb << " " << ub << endl;
+		cout << mid << " " << miv[mid].first << endl;
+
+		if(miv[mid].first <= 9321916706471420112LL)
+			lb = mid;
+		else
+			ub = mid;
+	}
+	cout << lb << endl;
+	cout << miv[lb].second << endl;
+
+	cout << "miv size: " << miv.size() << endl;
+
 	cout << "Checking All y1" << endl;
 	threads.clear();
 	for(Int y1=0; y1<(1LL<<X); y1+=(1LL<<(X-T))){
